@@ -1,0 +1,25 @@
+{
+  "type": "inspection_only",
+  "input_complex": "cg/complex_cg.pdb",
+  "output_pdb": "cg/solvated_inspection_system.pdb",
+  "grid_spacing_angstrom": 4.7,
+  "padding_angstrom": 28.0,
+  "exclusion_angstrom": 4.2,
+  "box_lengths_angstrom": [
+    226.81900024414062,
+    231.61199951171875,
+    156.79999923706055
+  ],
+  "counts": {
+    "solute_beads": 7408,
+    "water_beads": 81375,
+    "na": 496,
+    "cl": 570,
+    "mg": 37
+  },
+  "notes": [
+    "This file is for geometric inspection and notebook visualization.",
+    "It is not a validated simulation-ready Martini topology.",
+    "The merged complex may come from the consistent Martini 2 fallback pair when available."
+  ]
+}

@@ -7,11 +7,11 @@
 | :--- | :--- | :--- | :--- |
 | 0 | Bootstrap Environment | ✅ Done | uv, ruff, ty, vermouth installed |
 | 1 | Get Twinkle structure | ✅ Done | 7T8C.pdb cleaned to twinkle_hex.pdb |
-| 2 | Build dsDNA (30 bp) | ✅ Done | Extracted from 1KX5 via `src/02_build_dna.py` |
-| 3 | Coarse-grain | 🔄 Partial | Protein automated; DNA needs mapping |
-| 4 | Merge + position | ⏳ Pending | Requires Step 2 & 3 |
-| 5 | Solvate + ions | ⏳ Pending | Goal: `solvated_system.pdb` |
-| 6 | Simulate | ⏳ Pending | HPC handoff |
+| 2 | Build dsDNA (30 bp) | 🔄 Partial | `dna_30bp.pdb` exists, but the extracted 1KX5 segment is not a valid duplex template for direct CG |
+| 3 | Coarse-grain | 🔄 Partial | MARTINI 3 protein path still exists, and the repo now also builds a consistent Martini 2 fallback pair: `twinkle_m2_cg.pdb` + `dna_fallback_m2_cg.pdb` |
+| 4 | Merge + position | 🔄 Partial | `cg/complex_cg.pdb` now prefers the consistent Martini 2 fallback pair and writes successfully |
+| 5 | Solvate + ions | 🔄 Partial | `cg/solvated_inspection_system.pdb` now exists for geometry/visualization, but it is still a provisional grid-packed solvent box |
+| 6 | Simulate | 🔄 Partial | `cg/handoff_m2_ca_proxy/` now provides an HPC handoff bundle; divalent ions are still encoded as an explicit `CA+` proxy for the requested MgCl2 count |
 
 ---
 
@@ -110,10 +110,15 @@ twinkle-sim/
 │
 ├── cg/                    ← coarse-grained files
 │   ├── twinkle_cg.pdb
-│   ├── twinkle_cg.itp
-│   ├── dna_cg.pdb
-│   ├── complex_cg.pdb     ← merged protein + dna
-│   └── system.top         ← MARTINI topology master file
+│   ├── twinkle_cg.top
+│   ├── twinkle_m2_raw.pdb
+│   ├── twinkle_m2_cg.pdb
+│   ├── twinkle_m2.top
+│   ├── dna_fallback_m2_cg.pdb
+│   ├── dna_fallback_m2_cg.itp
+│   ├── dna_30bp_sequence.fasta
+│   ├── complex_cg.pdb     ← merged protein + fallback dna
+│   └── molecule_*.itp     ← martinize side outputs
 │
 ├── src/
 │   ├── 01_clean.py        ← extract 6 chains from 7T8C
@@ -121,7 +126,7 @@ twinkle-sim/
 │   ├── 03_coarse_grain.sh ← martinize2 commands
 │   ├── 04_merge.py        ← combine protein + DNA, position DNA in channel
 │   ├── 05_solvate.py      ← add water + ions (THE ENVIRONMENT)
-│   ├── 06_simulate.py     ← OpenMM production run
+│   ├── 06_simulate.py     ← build Martini 2 HPC handoff bundle
 │   └── 07_analyze.py      ← RMSD, ion density, plots
 │
 ├── notebooks/
@@ -180,6 +185,15 @@ quote-style = "double"
 ---
 
 ## Step-by-step pipeline
+
+## Reality check on current blocker
+
+The current repository does **not** have a working MARTINI 3 DNA coarse-graining path yet.
+
+- `martinize2` with the bundled `martini3001` force field recognizes the protein workflow, but the local vermouth install does not recognize the `DA/DC/DG/DT` residues in `structures/dna_30bp.pdb`.
+- The local `martini3001` force-field bundle also contains no DNA blocks in `-list-blocks`, so a `-map-dir` alone is not enough. We need the upstream Martini 3 nucleic-acid vermouth files as an extra force-field/mapping source.
+- The older note below about `martinize_dna.py` is not applicable to the current repo state. Our actual path forward would be a compatible Martini 3 DNA workflow in `martinize2`, but that is not present here.
+- The current fallback path is the official `polyply` Martini 2 DNA topology generator plus a locally generated idealized CG coordinate file. This is useful for visualization and placement, but it is not a fully force-field-consistent MARTINI 3 production setup.
 
 ### Step 0 — Bootstrap (once)
 
@@ -240,10 +254,10 @@ uv run python src/01_clean.py
 
 ### Step 2 — Build dsDNA (30 bp)
 
-Use the web tool — no install needed:
-1. Go to http://web.x3dna.org
-2. Select "Rebuild" → B-DNA → 30 bp → any sequence → Download PDB
-3. Save as `structures/dna_30bp.pdb`
+Current state:
+- `structures/dna_30bp.pdb` exists.
+- It is not a usable duplex template for direct coarse-graining because both strands carry the same 5'->3' sequence.
+- The repo therefore derives the first-strand sequence from that file and uses the official `polyply` fallback to build a dsDNA topology and idealized CG coordinates.
 
 ---
 
@@ -260,46 +274,79 @@ martinize2 \
   -ff martini3001 \
   -elastic -ef 500 -el 0.5 -eu 0.9
 
-# DNA → MARTINI CG (download martinize_dna.py from cgmartini.nl)
-python martinize_dna.py \
+# DNA → MARTINI 3 CG
+# Requires the official Martini 3 DNA vermouth-format files locally available.
+# Then run martinize2 with both an extra ff directory and map directory.
+martinize2 \
   -f structures/dna_30bp.pdb \
   -o cg/dna_cg.pdb \
-  -x cg/dna_cg.itp
+  -x cg/dna_cg.itp \
+  -ff martini3001 \
+  -ff-dir path/to/martini3_dna_ff \
+  -map-dir path/to/martini3_dna_maps
 ```
+
+At the moment the MARTINI 3 DNA branch is blocked. The practical fallback in this repo is:
+
+```bash
+uv run python src/03_coarse_grain.py
+```
+
+This currently yields:
+- `cg/twinkle_cg.pdb`
+- `cg/twinkle_cg.top`
+- `cg/twinkle_m2_raw.pdb`
+- `cg/twinkle_m2_cg.pdb`
+- `cg/twinkle_m2.top`
+- `cg/dna_fallback_m2_cg.pdb`
+- `cg/dna_fallback_m2_cg.itp`
+- `cg/dna_30bp_sequence.fasta`
+
+Important:
+- the DNA fallback is Martini 2 via official `polyply`,
+- not Martini 3 via `martinize2`,
+- and the protein fallback is now also available in Martini 2 with repaired `SC2` sidechain bead positions for the 18 previously invalid beads.
 
 ---
 
 ### Step 4 — Merge + position
 
-```python
-# src/04_merge.py
-# Place DNA through center of Twinkle ring (along Z-axis)
-import MDAnalysis as mda
-import numpy as np
-from pathlib import Path
+Current state:
+- `src/04_merge.py` now writes `cg/complex_cg.pdb`.
+- It now automatically prefers the consistent Martini 2 pair `cg/twinkle_m2_cg.pdb` + `cg/dna_fallback_m2_cg.pdb` when those files exist.
+- The older drop-invalid-beads path still exists as a fallback for the original MARTINI 3 protein output.
 
-Path("cg").mkdir(exist_ok=True)
-
-protein = mda.Universe("cg/twinkle_cg.pdb")
-dna = mda.Universe("cg/dna_cg.pdb")
-
-# Center protein at origin
-protein.atoms.translate(-protein.atoms.center_of_mass())
-
-# Center DNA, align along Z through ring channel
-dna.atoms.translate(-dna.atoms.center_of_mass())
-
-merged = mda.Merge(protein.atoms, dna.atoms)
-merged.atoms.write("cg/complex_cg.pdb")
-print("complex_cg.pdb saved.")
-```
+Result:
+- `cg/complex_cg.pdb` is now available for visual inspection.
+- This does not remove the underlying force-field mismatch between MARTINI 3 protein and Martini 2 fallback DNA.
 
 ---
 
 ### Step 5 — Solvate + add ions (THE ENVIRONMENT she asked for)
 
-This is what she wants you to build on your laptop.
-The output of this step is a fully solvated, ionized system ready to run.
+This is now partially rescued for inspection purposes.
+
+Current output:
+- `cg/solvated_inspection_system.pdb`
+- `cg/solvated_inspection_system.json`
+- `cg/handoff_m2_ca_proxy/`
+
+What this does:
+- packs coarse-grained water beads on a grid around `cg/complex_cg.pdb`,
+- adds Na, Cl, and Mg beads at counts derived from the requested concentrations,
+- writes a geometry-ready inspection box for notebook or viewer validation.
+
+What this does **not** do yet:
+- provide a validated Martini production topology,
+- guarantee force-field consistency between protein, DNA, solvent, and ions,
+- replace the still-missing clean MARTINI 3 DNA path.
+
+However, the current inspection environment is now based on a more coherent fallback because `cg/complex_cg.pdb` is built from the consistent Martini 2 protein+DNA pair when available.
+
+Important: the example below is an **all-atom OpenMM/CHARMM sketch** and does **not**
+match the stated MARTINI 3 coarse-grained goal of this repository. For the actual project,
+Step 5 should be performed only after a CG `complex_cg.pdb` and MARTINI-compatible
+topology are available, using a Martini-compatible solvation/ion placement workflow.
 
 ```python
 # src/05_solvate.py
@@ -352,11 +399,31 @@ print("solvated_system.pdb saved — environment ready.")
 uv run python src/05_solvate.py
 ```
 
-**This is the file you hand off. The environment is done.**
+This section remains only partially complete because the current merged complex is not yet a force-field-consistent MARTINI 3 protein+DNA system.
+However, the repo now also emits a concrete fallback handoff bundle in `cg/handoff_m2_ca_proxy/` for HPC-side GROMACS preparation.
 
 ---
 
-### Step 6 — Simulate (when ready, any machine)
+### Step 6 — HPC Handoff Bundle
+
+This step no longer attempts a bogus local OpenMM run on a Martini system.
+
+Running:
+
+```bash
+uv run python src/06_simulate.py
+```
+
+now builds:
+
+- `cg/handoff_m2_ca_proxy/system.top`
+- `cg/handoff_m2_ca_proxy/solvated_m2_ca_proxy.pdb`
+- `cg/handoff_m2_ca_proxy/em.mdp`
+- `cg/handoff_m2_ca_proxy/equil.mdp`
+- `cg/handoff_m2_ca_proxy/mdrun.mdp`
+- `cg/handoff_m2_ca_proxy/README.md`
+
+The handoff is still explicitly approximate because the official Martini 2 ion file available here does not define Mg, so the requested `7.5 mM MgCl2` count is encoded as the official `CA+` divalent bead in the fallback bundle.
 
 ```python
 # src/06_simulate.py
@@ -449,7 +516,7 @@ uv run jupyter notebook             # visualize
 | Package + env manager | `uv` | 10-100x faster than pip/conda, Rust-based |
 | Linting + formatting | `Ruff` | replaces Black + isort + Flake8 |
 | Type checker | `Ty` | new from Astral, native uv integration |
-| MD engine | `OpenMM` | pure Python, CPU-runnable |
+| MD engine | `GROMACS` (handoff target) | matches the legacy Martini 2 fallback assets now bundled here |
 | CG force field | `MARTINI 3` | protein+DNA, 10x less compute than all-atom |
 | Protein CG | `martinize2` | standard tool, pip install |
 | Analysis | `MDAnalysis` | trajectory RMSD, selection, ion density |
@@ -464,7 +531,7 @@ uv run jupyter notebook             # visualize
 - Salt buffer: PMC7186178 (100 mM NaCl, 7.5 mM MgCl₂, HEPES pH 7.5)
 - Twinkle structure: PDB 7T8C, Ciesielski et al. PNAS 2022
 - MARTINI 3: Souza et al. Nature Methods 2021
-- OpenMM: docs.openmm.org
+- GROMACS: manual.gromacs.org
 - NGLview: Nguyen et al. Bioinformatics 2018
 - 2026 Python stack: KDnuggets April 2026 (uv + Ruff + Ty)
 - PyMOL 3.1.8: updated March 2026, pymol.org

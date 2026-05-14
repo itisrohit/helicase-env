@@ -1,6 +1,17 @@
 # Twinkle + dsDNA Simulation Environment
 
-A modern, high-performance simulation environment for the Twinkle helicase and dsDNA, optimized.
+A coarse-grained Twinkle helicase + dsDNA setup workspace.
+
+Current reality:
+- Protein coarse-graining works.
+- The intended MARTINI 3 DNA path is still blocked upstream in the local `martinize2` stack.
+- The repo now includes a consistent Martini 2 rescue path:
+  - `cg/twinkle_m2_cg.pdb`
+  - `cg/dna_fallback_m2_cg.pdb`
+  - `cg/complex_cg.pdb`
+  - `cg/solvated_inspection_system.pdb`
+  - `cg/handoff_m2_ca_proxy/`
+- This is useful for inspection and HPC handoff preparation, but it is still not a validated production Martini 3 run.
 
 ---
 
@@ -19,10 +30,10 @@ The simulation setup is broken down into modular steps:
 | :--- | :--- | :--- |
 | **01** | `uv run python src/01_clean.py` | Fetch & clean Twinkle hexamer from RCSB (7T8C) |
 | **02** | *Manual Step* | Place `dna_30bp.pdb` in `structures/` |
-| **03** | `uv run python src/03_coarse_grain.py` | Generate MARTINI 3 topologies & move to `cg/` |
-| **04** | `uv run python src/04_merge.py` | Assemble the complex (DNA through ring channel) |
-| **05** | `uv run python src/05_solvate.py` | Add water, 100mM NaCl, and 7.5mM MgCl₂ |
-| **06** | `uv run python src/06_simulate.py` | Run OpenMM simulation |
+| **03** | `uv run python src/03_coarse_grain.py` | Generate Twinkle CG output and DNA fallback artifacts in `cg/` |
+| **04** | `uv run python src/04_merge.py` | Assemble an inspection complex using the available CG DNA file |
+| **05** | `uv run python src/05_solvate.py` | Build a provisional CG water/ion inspection environment in `cg/solvated_inspection_system.pdb` |
+| **06** | `uv run python src/06_simulate.py` | Build a self-contained Martini 2 HPC handoff bundle in `cg/handoff_m2_ca_proxy/` |
 
 ### 3. Visualization
 Open the interactive 3D viewer in Jupyter:
@@ -39,7 +50,7 @@ This project leverages the **Astral toolchain** for maximum efficiency:
 - **Package Manager**: [uv](https://github.com/astral-sh/uv) (Rust-based, 100x faster than pip)
 - **Linter & Formatter**: [Ruff](https://github.com/astral-sh/ruff)
 - **Type Checker**: [Ty](https://github.com/astral-sh/ty) (Modern successor to mypy)
-- **Simulation**: [OpenMM 8.5+](https://openmm.org/)
+- **Simulation Handoff**: legacy Martini/GROMACS-style HPC bundle generation
 - **Coarse-Graining**: [MARTINI 3](https://cgmartini.nl/) via `martinize2`
 
 ### Development Commands
@@ -56,7 +67,7 @@ uv run pytest              # Run tests
 ## Project Structure
 
 - `src/`: Core simulation logic and pipeline scripts.
-- `cg/`: Coarse-grained models and ITP topologies.
+- `cg/`: Coarse-grained models and topology artifacts.
 - `structures/`: Input atomic structures.
 - `notebooks/`: Visualization and analysis.
 - `output/`: Trajectories and results.
