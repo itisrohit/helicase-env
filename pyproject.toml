@@ -1,0 +1,42 @@
+[project]
+name = "twinkle-sim"
+version = "0.1.0"
+description = "CG-MD of Twinkle helicase + dsDNA — laptop-friendly"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "openmm>=8.0",
+  "mdanalysis>=2.7",
+  "numpy>=2.0",
+  "matplotlib>=3.9",
+  "biopython>=1.84",
+  "nglview>=3.1",
+  "jupyter>=1.1",
+  "ipywidgets>=8.0",
+]
+
+[dependency-groups]
+dev = [
+  "ruff>=0.4",
+  "ty>=0.0.1",
+  "mypy>=1.10",
+  "pytest>=8.0",
+  "vermouth>=0.15.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "B", "I", "UP"]
+
+[tool.ruff.format]
+quote-style = "double"
