@@ -7,8 +7,8 @@
 | :--- | :--- | :--- | :--- |
 | 0 | Bootstrap Environment | ✅ Done | uv, ruff, ty, vermouth installed |
 | 1 | Get Twinkle structure | ✅ Done | 7T8C.pdb cleaned to twinkle_hex.pdb |
-| 2 | Build dsDNA (30 bp) | ⏳ Pending | Awaiting `dna_30bp.pdb` from user |
-| 3 | Coarse-grain | 🔄 Partial | Automated via `src/03_coarse_grain.py` |
+| 2 | Build dsDNA (30 bp) | ✅ Done | Extracted from 1KX5 via `src/02_build_dna.py` |
+| 3 | Coarse-grain | 🔄 Partial | Protein automated; DNA needs mapping |
 | 4 | Merge + position | ⏳ Pending | Requires Step 2 & 3 |
 | 5 | Solvate + ions | ⏳ Pending | Goal: `solvated_system.pdb` |
 | 6 | Simulate | ⏳ Pending | HPC handoff |
@@ -56,7 +56,7 @@ RMSD plots, ion distributions, ring conformations, DNA threading.
 
 ---
 
-## Visualization tools (2026, all free, laptop-native)
+## Visualization tools 
 
 | Tool | Use | Install |
 |---|---|---|
@@ -442,7 +442,7 @@ uv run jupyter notebook             # visualize
 
 ---
 
-## Tool summary (2026 stack)
+## Tool summary
 
 | Role | Tool | Why |
 |---|---|---|
