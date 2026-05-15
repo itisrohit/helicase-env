@@ -15,5 +15,5 @@ Official sources:
   https://cgmartini.nl/docs/tutorials/Legacy/martini2/dna.html
 
 Notes:
-- The download links on the public docs currently point to S3 objects that were not fetchable from this CLI environment due `AccessDenied`.
-- If the package is downloaded manually in a browser, unpack the DNA release into this directory and rerun `src/03_coarse_grain.py`.
+- The standalone DNA tarball links on the public docs currently point to S3 objects that were not fetchable from this CLI environment due `AccessDenied`.
+- This repo now bootstraps `martinize-dna.py`, `martini_v2.1-dna.itp`, and `martini_v2.1P-dna.itp` from the larger official `na-tutorials_20170815.tar` archive when available.

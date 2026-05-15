@@ -11,7 +11,7 @@
 | 3 | Coarse-grain | 🔄 Partial | MARTINI 3 protein path still exists, and the repo now also builds a consistent Martini 2 fallback pair: `twinkle_m2_cg.pdb` + `dna_fallback_m2_cg.pdb` |
 | 4 | Merge + position | 🔄 Partial | `cg/complex_cg.pdb` now prefers the consistent Martini 2 fallback pair and writes successfully |
 | 5 | Solvate + ions | 🔄 Partial | `cg/solvated_inspection_system.pdb` now exists for geometry/visualization, but it is still a provisional grid-packed solvent box |
-| 6 | Simulate | 🔄 Partial | `cg/handoff_m2_ca_proxy/` now provides an HPC handoff bundle; divalent ions are still encoded as an explicit `CA+` proxy for the requested MgCl2 count |
+| 6 | Simulate | 🔄 Partial | `cg/handoff_m2_mg_proxy/` now provides an HPC handoff bundle; divalent ions are encoded as a documented local `MG2` proxy with the official Martini 2 divalent `Qd` +2 parameters |
 
 ---
 
@@ -329,7 +329,7 @@ This is now partially rescued for inspection purposes.
 Current output:
 - `cg/solvated_inspection_system.pdb`
 - `cg/solvated_inspection_system.json`
-- `cg/handoff_m2_ca_proxy/`
+- `cg/handoff_m2_mg_proxy/`
 
 What this does:
 - packs coarse-grained water beads on a grid around `cg/complex_cg.pdb`,
@@ -400,7 +400,7 @@ uv run python src/05_solvate.py
 ```
 
 This section remains only partially complete because the current merged complex is not yet a force-field-consistent MARTINI 3 protein+DNA system.
-However, the repo now also emits a concrete fallback handoff bundle in `cg/handoff_m2_ca_proxy/` for HPC-side GROMACS preparation.
+However, the repo now also emits a concrete fallback handoff bundle in `cg/handoff_m2_mg_proxy/` for HPC-side GROMACS preparation.
 
 ---
 
@@ -416,14 +416,15 @@ uv run python src/06_simulate.py
 
 now builds:
 
-- `cg/handoff_m2_ca_proxy/system.top`
-- `cg/handoff_m2_ca_proxy/solvated_m2_ca_proxy.pdb`
-- `cg/handoff_m2_ca_proxy/em.mdp`
-- `cg/handoff_m2_ca_proxy/equil.mdp`
-- `cg/handoff_m2_ca_proxy/mdrun.mdp`
-- `cg/handoff_m2_ca_proxy/README.md`
+- `cg/handoff_m2_mg_proxy/system.top`
+- `cg/handoff_m2_mg_proxy/solvated_m2_mg_proxy.pdb`
+- `cg/handoff_m2_mg_proxy/em.mdp`
+- `cg/handoff_m2_mg_proxy/equil.mdp`
+- `cg/handoff_m2_mg_proxy/mdrun.mdp`
+- `cg/handoff_m2_mg_proxy/README.md`
+- `cg/handoff_m2_mg_proxy/mg_proxy.itp`
 
-The handoff is still explicitly approximate because the official Martini 2 ion file available here does not define Mg, so the requested `7.5 mM MgCl2` count is encoded as the official `CA+` divalent bead in the fallback bundle.
+The handoff is still explicitly approximate because the official Martini 2 ion file available here does not define Mg, so the requested `7.5 mM MgCl2` count is encoded through a local `MG2` proxy that reuses the official Martini 2 divalent `Qd` +2 bead parameters.
 
 ```python
 # src/06_simulate.py

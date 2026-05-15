@@ -383,6 +383,20 @@ def repair_nan_sidechains(input_pdb: Path, output_pdb: Path) -> int:
     return repaired
 
 
+def normalize_topology_includes(path: Path) -> None:
+    lines = path.read_text().splitlines()
+    seen: set[str] = set()
+    normalized: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith('#include "molecule_'):
+            if stripped in seen:
+                continue
+            seen.add(stripped)
+        normalized.append(line)
+    path.write_text("\n".join(normalized) + "\n")
+
+
 def run_protein_m2_fallback(input_pdb: Path) -> bool:
     raw_pdb = CG_DIR / f"{PROTEIN_FALLBACK_NAME}_raw.pdb"
     top_path = CG_DIR / f"{PROTEIN_FALLBACK_NAME}.top"
@@ -415,6 +429,7 @@ def run_protein_m2_fallback(input_pdb: Path) -> bool:
         print_process_output(result)
         return False
 
+    normalize_topology_includes(top_path)
     repaired = repair_nan_sidechains(raw_pdb, final_pdb)
     print(f"Martini 2 protein fallback completed. Repaired {repaired} sidechain beads.")
     return True
@@ -459,6 +474,7 @@ def run_martinize():
         print_process_output(result)
         return
 
+    normalize_topology_includes(output_top)
     print("martinize2 completed successfully for protein.")
 
     # --- DNA -> MARTINI 3 CG ---
@@ -500,7 +516,7 @@ def run_martinize():
         print(f"Moved {f} to cg/")
 
     # Clean up backups
-    backups = glob.glob("#*#")
+    backups = glob.glob("#*#") + glob.glob(str(CG_DIR / "#*#"))
     for f in backups:
         os.remove(f)
         print(f"Removed backup {f}")

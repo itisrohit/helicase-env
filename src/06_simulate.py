@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CG_DIR = ROOT / "cg"
 OFFICIAL_M2_DIR = ROOT / "vendor" / "martini2-official"
 OFFICIAL_TUTORIAL_TAR = OFFICIAL_M2_DIR / "na-tutorials_20170815.tar"
-HANDOFF_DIR = CG_DIR / "handoff_m2_ca_proxy"
+HANDOFF_DIR = CG_DIR / "handoff_m2_mg_proxy"
 
 INSPECTION_PDB = CG_DIR / "solvated_inspection_system.pdb"
 INSPECTION_JSON = CG_DIR / "solvated_inspection_system.json"
@@ -67,10 +67,13 @@ def parse_twinkle_topology(path: Path) -> tuple[list[str], list[str]]:
     includes: list[str] = []
     molecules: list[str] = []
     in_molecules = False
+    seen_includes: set[str] = set()
     for raw_line in path.read_text().splitlines():
         line = raw_line.strip()
         if raw_line.startswith('#include "molecule_'):
-            includes.append(raw_line)
+            if raw_line not in seen_includes:
+                includes.append(raw_line)
+                seen_includes.add(raw_line)
         if line.startswith("["):
             in_molecules = line == "[ molecules ]"
             continue
@@ -100,7 +103,7 @@ def rewrite_proxy_pdb(source: Path, destination: Path) -> None:
     rename_map = {
         "NA": "NA+",
         "CL": "CL-",
-        "MG": "CA+",
+        "MG": "MG2",
     }
     lines_out: list[str] = []
     for line in source.read_text().splitlines():
@@ -123,6 +126,7 @@ def write_system_topology(
     output = [
         '#include "martini_v2.2.itp"',
         '#include "martini_v2.0_ions.itp"',
+        '#include "mg_proxy.itp"',
         '#include "martini_v2.1P-dna.itp"',
     ]
     output.extend(include_lines)
@@ -141,8 +145,26 @@ def write_system_topology(
     output.append(f"W                {counts['water_beads']}")
     output.append(f"NA+              {counts['na']}")
     output.append(f"CL-              {counts['cl']}")
-    output.append(f"CA+              {counts['mg']}")
+    output.append(f"MG2              {counts['mg']}")
     destination.write_text("\n".join(output) + "\n")
+
+
+def write_mg_proxy_itp(destination: Path) -> None:
+    destination.write_text(
+        """;;; Local Mg proxy for Martini 2 fallback handoff.
+;;; Uses the same Qd divalent bead class and +2 charge as the official CA+ ion.
+;;; This preserves the requested MgCl2 stoichiometry in file naming while keeping
+;;; the nonbonded behavior explicitly identical to the official divalent ion model.
+
+[ moleculetype ]
+; molname  nrexcl
+  MG2      1
+
+[ atoms ]
+;id  type  resnr  residu  atom  cgnr  charge
+ 1   Qd    1      ION     MG2   1     2.0
+"""
+    )
 
 
 def write_handoff_readme(destination: Path, counts: dict[str, int]) -> None:
@@ -153,16 +175,17 @@ This directory is the strongest force-field-consistent rescue branch available i
 - Protein: Martini 2 fallback generated from `twinkle_hex.pdb`
 - DNA: official `polyply` Martini 2 dsDNA topology + idealized CG coordinates
 - Solvent coordinates: provisional grid-packed inspection coordinates
-- Divalent ion caveat: the official `martini_v2.0_ions.itp` bundled here does not provide Mg. The `{counts["mg"]}` requested divalent ions are therefore encoded as the official `CA+` bead as a documented proxy.
+- Divalent ion caveat: the official `martini_v2.0_ions.itp` bundled here does not provide Mg. The `{counts["mg"]}` requested divalent ions are therefore encoded through a local `MG2` proxy with the same `Qd` +2 parameters as the official `CA+` bead.
 
 Files:
 - `system.top`: combined topology for the fallback system
-- `solvated_m2_ca_proxy.pdb`: coordinate file rewritten to use Martini 2 ion names
+- `solvated_m2_mg_proxy.pdb`: coordinate file rewritten to use Martini 2 ion names
+- `mg_proxy.itp`: local Mg proxy include using the official divalent `Qd` +2 bead class
 - `em.mdp`, `equil.mdp`, `mdrun.mdp`: official legacy tutorial starting points
 - `water.gro`: official legacy Martini water box from the DNA tutorial package
 
 Suggested HPC sequence:
-1. `gmx grompp -f em.mdp -c solvated_m2_ca_proxy.pdb -p system.top -o 01-em.tpr -maxwarn 1`
+1. `gmx grompp -f em.mdp -c solvated_m2_mg_proxy.pdb -p system.top -o 01-em.tpr -maxwarn 1`
 2. `gmx mdrun -v -deffnm 01-em`
 3. `gmx grompp -f equil.mdp -c 01-em.gro -p system.top -o 02-eq -maxwarn 1`
 4. `gmx mdrun -v -deffnm 02-eq -rdd 2.0`
@@ -186,11 +209,11 @@ def write_manifest(destination: Path, counts: dict[str, int], molecule_files: li
         "encoded_solution": {
             "na_count": counts["na"],
             "cl_count": counts["cl"],
-            "ca_proxy_count": counts["mg"],
+            "mg_proxy_count": counts["mg"],
         },
         "notes": [
             "The official Martini 2 ion file does not provide Mg.",
-            "CA+ is used here as an explicit divalent-ion proxy for the requested MgCl2 count.",
+            "MG2 is a local proxy that reuses the official CA+ bead type Qd with +2 charge.",
             "The solvent coordinates were packed for inspection and should be relaxed by minimization and equilibration on HPC.",
         ],
         "protein_molecule_itps": molecule_files,
@@ -213,7 +236,7 @@ def main() -> None:
     counts = json.loads(INSPECTION_JSON.read_text())["counts"]
 
     HANDOFF_DIR.mkdir(parents=True, exist_ok=True)
-    rewrite_proxy_pdb(INSPECTION_PDB, HANDOFF_DIR / "solvated_m2_ca_proxy.pdb")
+    rewrite_proxy_pdb(INSPECTION_PDB, HANDOFF_DIR / "solvated_m2_mg_proxy.pdb")
     shutil.copy2(CG_DIR / "complex_cg.pdb", HANDOFF_DIR / "complex_cg.pdb")
     shutil.copy2(CG_DIR / "twinkle_m2_cg.pdb", HANDOFF_DIR / "twinkle_m2_cg.pdb")
     shutil.copy2(CG_DIR / "dna_fallback_m2_cg.pdb", HANDOFF_DIR / "dna_fallback_m2_cg.pdb")
@@ -223,6 +246,7 @@ def main() -> None:
         shutil.copy2(source, HANDOFF_DIR / asset_name)
 
     molecule_files = copy_molecule_itps(include_lines, HANDOFF_DIR)
+    write_mg_proxy_itp(HANDOFF_DIR / "mg_proxy.itp")
     write_system_topology(HANDOFF_DIR / "system.top", include_lines, molecule_lines, counts)
     write_handoff_readme(HANDOFF_DIR / "README.md", counts)
     write_manifest(HANDOFF_DIR / "manifest.json", counts, molecule_files)

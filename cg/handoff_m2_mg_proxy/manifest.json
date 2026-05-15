@@ -1,0 +1,28 @@
+{
+  "type": "martini2_fallback_handoff",
+  "coordinate_source": "cg/solvated_inspection_system.pdb",
+  "topology": "system.top",
+  "requested_solution": {
+    "na_cl_molar": 0.1,
+    "mg_cl2_molar": 0.0075
+  },
+  "encoded_solution": {
+    "na_count": 496,
+    "cl_count": 570,
+    "mg_proxy_count": 37
+  },
+  "notes": [
+    "The official Martini 2 ion file does not provide Mg.",
+    "MG2 is a local proxy that reuses the official CA+ bead type Qd with +2 charge.",
+    "The solvent coordinates were packed for inspection and should be relaxed by minimization and equilibration on HPC."
+  ],
+  "protein_molecule_itps": [
+    "molecule_0.itp",
+    "molecule_1.itp",
+    "molecule_2.itp",
+    "molecule_3.itp",
+    "molecule_4.itp",
+    "molecule_5.itp",
+    "molecule_6.itp"
+  ]
+}

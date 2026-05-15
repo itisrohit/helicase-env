@@ -19,6 +19,7 @@
 * The repo now also builds a Martini 2 protein fallback using `martinize2 -ff martini22`.
 * That fallback repairs the 18 invalid `SC2` sidechain bead coordinates deterministically from local `BB -> SC1` geometry, yielding `cg/twinkle_m2_cg.pdb`.
 * The merge step now prefers the consistent Martini 2 pair and writes `cg/complex_cg.pdb`.
+* The generated `cg/twinkle_m2.top` is now normalized so each `molecule_*.itp` file is included only once.
 
 ### Consequence
 
@@ -133,19 +134,20 @@ When setting up a simulation environment, finding specific structural "parts" is
 ### What was built
 
 * Replaced the old `src/06_simulate.py` OpenMM placeholder with a real handoff builder.
-* The script now writes `cg/handoff_m2_ca_proxy/` containing:
+* The script now writes `cg/handoff_m2_mg_proxy/` containing:
   * `system.top`
-  * `solvated_m2_ca_proxy.pdb`
+  * `solvated_m2_mg_proxy.pdb`
   * official `martini_v2.2.itp`
   * official `martini_v2.0_ions.itp`
   * official `martini_v2.1P-dna.itp`
+  * local `mg_proxy.itp`
   * official legacy `em.mdp`, `equil.mdp`, `mdrun.mdp`
   * a local handoff `README.md` and `manifest.json`
 
 ### What we learned
 
 * The official Martini 2 ion file available here defines `NA+`, `CL-`, and `CA+`, but not Mg.
-* To keep the fallback branch self-contained and force-field-consistent with official files, the requested `37` divalent ions are encoded in the handoff bundle as the official `CA+` bead with an explicit manifest note.
+* To keep the fallback branch self-contained and semantically cleaner, the requested `37` divalent ions are now encoded as a local `MG2` proxy that explicitly reuses the official Martini 2 `Qd` +2 divalent bead parameters.
 
 ### Consequence
 

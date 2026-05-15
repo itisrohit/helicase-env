@@ -1,0 +1,12 @@
+;;; Local Mg proxy for Martini 2 fallback handoff.
+;;; Uses the same Qd divalent bead class and +2 charge as the official CA+ ion.
+;;; This preserves the requested MgCl2 stoichiometry in file naming while keeping
+;;; the nonbonded behavior explicitly identical to the official divalent ion model.
+
+[ moleculetype ]
+; molname  nrexcl
+  MG2      1
+
+[ atoms ]
+;id  type  resnr  residu  atom  cgnr  charge
+ 1   Qd    1      ION     MG2   1     2.0

@@ -10,7 +10,7 @@ Current reality:
   - `cg/dna_fallback_m2_cg.pdb`
   - `cg/complex_cg.pdb`
   - `cg/solvated_inspection_system.pdb`
-  - `cg/handoff_m2_ca_proxy/`
+  - `cg/handoff_m2_mg_proxy/`
 - This is useful for inspection and HPC handoff preparation, but it is still not a validated production Martini 3 run.
 
 ---
@@ -33,7 +33,7 @@ The simulation setup is broken down into modular steps:
 | **03** | `uv run python src/03_coarse_grain.py` | Generate Twinkle CG output and DNA fallback artifacts in `cg/` |
 | **04** | `uv run python src/04_merge.py` | Assemble an inspection complex using the available CG DNA file |
 | **05** | `uv run python src/05_solvate.py` | Build a provisional CG water/ion inspection environment in `cg/solvated_inspection_system.pdb` |
-| **06** | `uv run python src/06_simulate.py` | Build a self-contained Martini 2 HPC handoff bundle in `cg/handoff_m2_ca_proxy/` |
+| **06** | `uv run python src/06_simulate.py` | Build a self-contained Martini 2 HPC handoff bundle in `cg/handoff_m2_mg_proxy/` |
 
 ### 3. Visualization
 Open the interactive 3D viewer in Jupyter:
