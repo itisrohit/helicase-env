@@ -20,6 +20,13 @@ ANGSTROM3_TO_LITER = 1e-27
 RNG_SEED = 20260514
 
 
+def rel(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def volume_liters(box_lengths_a: np.ndarray) -> float:
     return float(np.prod(box_lengths_a) * ANGSTROM3_TO_LITER)
 
@@ -84,7 +91,7 @@ def write_system(
 
 def main() -> None:
     if not INPUT_PDB.exists():
-        raise SystemExit(f"Missing {INPUT_PDB}. Run src/04_merge.py first.")
+        raise SystemExit(f"Missing {rel(INPUT_PDB)}. Run src/04_merge.py first.")
 
     universe = mda.Universe(str(INPUT_PDB))
     solute = universe.atoms.positions.astype(float)
@@ -150,8 +157,8 @@ def main() -> None:
     }
     OUTPUT_JSON.write_text(json.dumps(metadata, indent=2))
 
-    print(f"Wrote {OUTPUT_PDB}")
-    print(f"Wrote {OUTPUT_JSON}")
+    print(f"Wrote {rel(OUTPUT_PDB)}")
+    print(f"Wrote {rel(OUTPUT_JSON)}")
     print(json.dumps(metadata["counts"], indent=2))
 
 

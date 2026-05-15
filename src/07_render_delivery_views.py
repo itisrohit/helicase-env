@@ -1,4 +1,13 @@
+# ruff: noqa: E402
+
+import os
+import tempfile
 from pathlib import Path
+
+CACHE_DIR = Path(tempfile.gettempdir()) / "twinkle-sim-cache"
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+os.environ.setdefault("MPLCONFIGDIR", str(CACHE_DIR / "matplotlib"))
+os.environ.setdefault("XDG_CACHE_HOME", str(CACHE_DIR / "xdg-cache"))
 
 import matplotlib
 
@@ -14,6 +23,13 @@ CG_DIR = ROOT / "cg"
 DELIVERABLES_DIR = ROOT / "deliverables"
 COMPLEX_PDB = CG_DIR / "complex_cg.pdb"
 ENV_PDB = CG_DIR / "solvated_inspection_system.pdb"
+
+
+def rel(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
 
 
 def scatter_projection(ax, points: np.ndarray, color: str, label: str, size: float, alpha: float) -> None:
@@ -153,9 +169,9 @@ def main() -> None:
     DELIVERABLES_DIR.mkdir(exist_ok=True)
     complex_png = render_complex()
     overview_png, zoom_png = render_environment_overview_and_zoom()
-    print(complex_png)
-    print(overview_png)
-    print(zoom_png)
+    print(rel(complex_png))
+    print(rel(overview_png))
+    print(rel(zoom_png))
 
 
 if __name__ == "__main__":

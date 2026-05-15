@@ -1,4 +1,4 @@
-# HPC Handoff Bundle
+# Martini 2 fallback HPC handoff
 
 This directory is the delivered handoff bundle for the local environment request.
 
@@ -18,3 +18,4 @@ Scope:
 
 Model tradeoff:
 - the bundle uses a documented local `MG2` proxy because the official Martini 2 ion file available here does not define Mg
+- the `37` requested divalent ions are therefore represented by that local proxy

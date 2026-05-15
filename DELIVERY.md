@@ -4,6 +4,9 @@ As of May 15, 2026, the requested **local environment handoff** is prepared.
 
 ## Delivered
 
+Recommended one-command rebuild:
+- `uv run --locked twinkle-delivery`
+
 Packaged artifact:
 - `deliverables/twinkle_dsDNA_environment_m2_mg_proxy.tar.gz`
 

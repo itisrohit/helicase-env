@@ -1,4 +1,4 @@
-; /Users/RohitKumar/Desktop/GItHubProjects/helicase-env/.venv/bin/polyply gen_params -lib martini2 -seqf /Users/RohitKumar/Desktop/GItHubProjects/helicase-env/cg/dna_30bp_sequence.fasta -name dna_fallback_m2 -o /Users/RohitKumar/Desktop/GItHubProjects/helicase-env/cg/dna_fallback_m2_cg.itp -dsdna
+; polyply gen_params -lib martini2 -seqf cg/dna_30bp_sequence.fasta -name dna_fallback_m2 -o cg/dna_fallback_m2_cg.itp -dsdna
 
 ; Please cite the following papers:
 ; Marrink, S J; Risselada, H J; Yefimov, S; Tieleman, D P; De Vries, A H;  The journal of physical chemistry B 2007; 10.1021/jp071097f

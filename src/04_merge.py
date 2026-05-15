@@ -1,21 +1,21 @@
-# src/04_merge.py
-# Place DNA through center of Twinkle ring (along Z-axis)
 from pathlib import Path
 
 import MDAnalysis as mda
 import numpy as np
 
-Path("cg").mkdir(exist_ok=True)
+ROOT = Path(__file__).resolve().parents[1]
+CG_DIR = ROOT / "cg"
+CG_DIR.mkdir(exist_ok=True)
 
 try:
-    protein_path = Path("cg/twinkle_m2_cg.pdb")
+    protein_path = CG_DIR / "twinkle_m2_cg.pdb"
     if not protein_path.exists():
-        protein_path = Path("cg/twinkle_cg.pdb")
+        protein_path = CG_DIR / "twinkle_cg.pdb"
     protein = mda.Universe(str(protein_path))
 
-    dna_path = Path("cg/dna_fallback_m2_cg.pdb")
+    dna_path = CG_DIR / "dna_fallback_m2_cg.pdb"
     if not dna_path.exists():
-        dna_path = Path("cg/dna_cg.pdb")
+        dna_path = CG_DIR / "dna_cg.pdb"
     dna = mda.Universe(str(dna_path))
 
     protein_finite = protein.atoms[np.isfinite(protein.atoms.positions).all(axis=1)]
@@ -31,7 +31,7 @@ try:
     dna_finite.translate(-dna_finite.center_of_geometry())
 
     merged = mda.Merge(protein_finite, dna_finite)
-    merged.atoms.write("cg/complex_cg.pdb")
+    merged.atoms.write(str(CG_DIR / "complex_cg.pdb"))
     print(f"complex_cg.pdb saved using {protein_path.name} + {dna_path.name}.")
 except FileNotFoundError:
     print("Error: cg/twinkle_cg.pdb or a DNA CG PDB was not found. Run earlier steps first.")

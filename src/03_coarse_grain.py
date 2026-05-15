@@ -1,8 +1,8 @@
-import glob
 import math
 import os
 import shutil
 import subprocess
+import sys
 import tarfile
 from pathlib import Path
 
@@ -11,8 +11,6 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 CG_DIR = ROOT / "cg"
-MARTINIZE = ROOT / ".venv" / "bin" / "martinize2"
-POLYPLY = ROOT / ".venv" / "bin" / "polyply"
 VENDORED_VERMOUTH = (
     ROOT / "vendor" / "martini-forcefields" / "regular" / "v3.0.0" / "vermouth_files"
 )
@@ -39,6 +37,29 @@ RES_TO_ONE = {value: key for key, value in ONE_TO_RES.items()}
 DNA_COMPLEMENT = {"A": "T", "C": "G", "G": "C", "T": "A"}
 
 
+def rel(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def resolve_executable(name: str) -> str | None:
+    direct = shutil.which(name)
+    if direct:
+        return direct
+
+    scripts_dir = Path(sys.executable).parent
+    candidates = [name]
+    if os.name == "nt":
+        candidates.extend([f"{name}.exe", f"{name}.cmd", f"{name}.bat"])
+    for candidate in candidates:
+        path = scripts_dir / candidate
+        if path.exists():
+            return str(path)
+    return None
+
+
 def residue_chain_id(residue) -> str:
     chain_id = getattr(residue, "chainID", "") or ""
     segid = getattr(residue, "segid", "") or ""
@@ -46,7 +67,10 @@ def residue_chain_id(residue) -> str:
 
 
 def base_cmd() -> list[str]:
-    cmd = [str(MARTINIZE)]
+    martinize = resolve_executable("martinize2")
+    if martinize is None:
+        raise SystemExit("Could not find `martinize2` in the active environment. Run `uv sync` first.")
+    cmd = [martinize]
     # The vendored upstream vermouth files are kept for reference, but they are
     # not enabled by default because their format is newer than the installed
     # vermouth parser in this environment.
@@ -88,9 +112,9 @@ def explain_dna_blocker(result: subprocess.CompletedProcess[str]) -> None:
         "- Official Martini legacy documentation still points dsDNA users to the Martini 2 `martinize-dna.py` workflow."
     )
     if VENDORED_NUCLEOBASE_ITP.exists():
-        print(f"- Vendored reference nucleobase parameters: {VENDORED_NUCLEOBASE_ITP}")
+        print(f"- Vendored reference nucleobase parameters: {rel(VENDORED_NUCLEOBASE_ITP)}")
     if LEGACY_DNA_SCRIPT.exists():
-        print(f"- Legacy fallback script is available locally: {LEGACY_DNA_SCRIPT}")
+        print(f"- Legacy fallback script is available locally: {rel(LEGACY_DNA_SCRIPT)}")
     else:
         print(
             "- Legacy fallback script is not present locally. Drop the official Martini 2 DNA package into vendor/legacy-martini2-dna/ to enable that path."
@@ -114,6 +138,18 @@ def extract_tar_member(archive: Path, member: str, destination: Path) -> bool:
     return True
 
 
+def sanitize_polyply_itp(path: Path) -> None:
+    lines = path.read_text().splitlines()
+    if not lines:
+        return
+    if "polyply gen_params" in lines[0]:
+        lines[0] = (
+            f"; polyply gen_params -lib martini2 -seqf {rel(CG_DIR / 'dna_30bp_sequence.fasta')}"
+            f" -name {DNA_FALLBACK_NAME} -o {rel(path)} -dsdna"
+        )
+    path.write_text("\n".join(lines) + "\n")
+
+
 def ensure_legacy_dna_assets() -> None:
     assets = {
         "./na-tutorials/dna-tutorial/martini-dna/martinize-dna.py": LEGACY_DNA_SCRIPT,
@@ -126,7 +162,7 @@ def ensure_legacy_dna_assets() -> None:
         if destination.exists():
             continue
         if extract_tar_member(OFFICIAL_M2_TUTORIAL_TAR, member, destination):
-            print(f"Bootstrapped legacy Martini 2 DNA asset: {destination.relative_to(ROOT)}")
+            print(f"Bootstrapped legacy Martini 2 DNA asset: {rel(destination)}")
 
 
 def run_legacy_dna_martinize(dna_pdb: Path, dna_out: Path, dna_itp: Path) -> bool:
@@ -135,8 +171,9 @@ def run_legacy_dna_martinize(dna_pdb: Path, dna_out: Path, dna_itp: Path) -> boo
         return False
 
     print("Trying official legacy Martini 2 DNA fallback...")
+    python_exe = Path(sys.executable)
     cmd = [
-        str(ROOT / ".venv" / "bin" / "python"),
+        str(python_exe),
         str(LEGACY_DNA_SCRIPT),
         "-dnatype",
         "ds-stiff",
@@ -262,8 +299,9 @@ def inspect_dna_input(dna_pdb: Path) -> bool:
 
 
 def run_polyply_dna_fallback(dna_pdb: Path, dna_out: Path, dna_itp: Path) -> bool:
-    if not POLYPLY.exists():
-        print("Polyply fallback is unavailable because `.venv/bin/polyply` is missing.")
+    polyply = resolve_executable("polyply")
+    if polyply is None:
+        print("Polyply fallback is unavailable because `polyply` is missing in the active environment.")
         return False
 
     chain_id, sequence = first_dna_sequence(dna_pdb)
@@ -277,7 +315,7 @@ def run_polyply_dna_fallback(dna_pdb: Path, dna_out: Path, dna_itp: Path) -> boo
     print("Trying official polyply Martini 2 DNA fallback...")
     print(f"- Using chain {chain_id} sequence: {sequence}")
     cmd = [
-        str(POLYPLY),
+        polyply,
         "gen_params",
         "-lib",
         "martini2",
@@ -295,6 +333,7 @@ def run_polyply_dna_fallback(dna_pdb: Path, dna_out: Path, dna_itp: Path) -> boo
         print_process_output(result)
         return False
 
+    sanitize_polyply_itp(dna_itp)
     write_cg_pdb(sequence, dna_out)
     print(f"Polyply DNA fallback completed: {dna_itp.name}, {dna_out.name}")
     print("Note: this fallback is Martini 2 DNA, not Martini 3 DNA.")
@@ -443,7 +482,7 @@ def run_martinize():
     CG_DIR.mkdir(exist_ok=True)
     ensure_legacy_dna_assets()
 
-    print(f"Running martinize2 for {input_pdb}...")
+    print(f"Running martinize2 for {rel(input_pdb)}...")
 
     # Run martinize2
     # We use -maxwarn 1 because we don't have DSSP installed in this environment yet
@@ -486,7 +525,7 @@ def run_martinize():
         if run_polyply_dna_fallback(dna_pdb, dna_out, dna_itp):
             run_protein_m2_fallback(input_pdb)
     else:
-        print(f"Running martinize2 for {dna_pdb}...")
+        print(f"Running martinize2 for {rel(dna_pdb)}...")
         cmd_dna = base_cmd() + [
             "-f",
             str(dna_pdb),
@@ -510,16 +549,17 @@ def run_martinize():
             print("DNA coarse-graining completed.")
 
     # Move molecule_*.itp files to cg/
-    itp_files = glob.glob("molecule_*.itp")
-    for f in itp_files:
-        shutil.move(f, CG_DIR / f)
-        print(f"Moved {f} to cg/")
+    itp_files = sorted(ROOT.glob("molecule_*.itp"))
+    for source in itp_files:
+        destination = CG_DIR / source.name
+        shutil.move(source, destination)
+        print(f"Moved {rel(source)} to {rel(destination)}")
 
     # Clean up backups
-    backups = glob.glob("#*#") + glob.glob(str(CG_DIR / "#*#"))
-    for f in backups:
-        os.remove(f)
-        print(f"Removed backup {f}")
+    backups = list(ROOT.glob("#*#")) + list(CG_DIR.glob("#*#"))
+    for backup in backups:
+        os.remove(backup)
+        print(f"Removed backup {rel(backup)}")
 
 
 if __name__ == "__main__":

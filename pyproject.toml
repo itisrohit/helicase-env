@@ -15,6 +15,9 @@ dependencies = [
   "ipywidgets>=8.0",
 ]
 
+[project.scripts]
+twinkle-delivery = "src.run_delivery:main"
+
 [dependency-groups]
 dev = [
   "ruff>=0.4",
