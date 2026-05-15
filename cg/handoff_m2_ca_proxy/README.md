@@ -1,10 +1,10 @@
 # Deprecated Handoff
 
-This directory is superseded by [cg/handoff_m2_mg_proxy](</Users/RohitKumar/Desktop/GItHubProjects/helicase-env/cg/handoff_m2_mg_proxy/>).
+This directory is obsolete.
 
-Why:
-- the newer bundle keeps the same fallback topology path,
-- but replaces the older `CA+` label workaround with an explicit local `MG2` proxy include,
-- and is the current handoff artifact documented in the repo.
+Use instead:
+- `cg/handoff_m2_mg_proxy/`
 
-Use the newer bundle for any HPC preparation.
+Reason:
+- the newer bundle is the current delivered handoff
+- it replaces the older `CA+` naming workaround with the documented `MG2` proxy path

@@ -1,82 +1,73 @@
-# Twinkle + dsDNA Simulation Environment
+# Twinkle + dsDNA Delivery Repo
 
-A coarse-grained Twinkle helicase + dsDNA setup workspace.
+This repo prepares the **local starting environment** requested for a Twinkle hexamer + 30 bp dsDNA system in water with salt, and packages it for later HPC-side simulation.
 
-Current reality:
-- The requested local environment handoff is prepared.
-- The delivered path in this repo is a consistent Martini 2 rescue branch:
-  - `cg/twinkle_m2_cg.pdb`
-  - `cg/dna_fallback_m2_cg.pdb`
-  - `cg/complex_cg.pdb`
-  - `cg/solvated_inspection_system.pdb`
-  - `cg/handoff_m2_mg_proxy/`
-- Packaged delivery artifact:
-  - `deliverables/twinkle_dsDNA_environment_m2_mg_proxy.tar.gz`
-- The original MARTINI 3 DNA path is still blocked upstream in the local `martinize2` stack, but that does not block the requested handoff deliverable.
+## Scope
 
----
+What this repo **does**:
+- prepares a merged Twinkle + dsDNA coarse-grained complex
+- prepares a local solvated environment with the requested salt counts
+- prepares an HPC handoff bundle
+- provides static and notebook-based visualization for inspection
 
-## Quick Start
+What this repo **does not claim**:
+- a finished Martini 3 dsDNA workflow
+- a completed production simulation
+- validated Mg parameters from an official Martini 2 ion file
 
-### Delivery
-The direct handoff artifact is documented in [DELIVERY.md](./DELIVERY.md).
+## Delivered Artifacts
 
-### 1. Initialize Environment
-Ensure you have `uv` installed, then sync the project:
+Primary packaged handoff:
+- `deliverables/twinkle_dsDNA_environment_m2_mg_proxy.tar.gz`
+
+Expanded handoff directory:
+- `cg/handoff_m2_mg_proxy/`
+
+Key local outputs:
+- `cg/complex_cg.pdb`
+- `cg/solvated_inspection_system.pdb`
+- `cg/solvated_inspection_system.json`
+
+Visualization outputs:
+- `deliverables/twinkle_dsDNA_complex_overview.png`
+- `deliverables/twinkle_dsDNA_environment_overview.png`
+- `deliverables/twinkle_dsDNA_environment_zoom.png`
+- `notebooks/visualize.ipynb`
+
+## Delivered Model Choice
+
+The delivered branch is a **Martini 2 rescue path**, because the intended Martini 3 dsDNA path is still upstream-blocked in the local `martinize2/vermouth` workflow.
+
+The final handoff bundle uses:
+- Martini 2 protein fallback
+- Martini 2 DNA fallback
+- a documented local `MG2` proxy that reuses the official Martini 2 divalent `Qd` +2 ion behavior
+
+## End-to-End Run
+
 ```bash
 uv sync
+uv run python src/02_build_dna.py
+uv run python src/03_coarse_grain.py
+uv run python src/04_merge.py
+uv run python src/05_solvate.py
+uv run python src/06_simulate.py
 ```
 
-### 2. Run the Pipeline
-The simulation setup is broken down into modular steps:
+Optional:
+- `uv run python src/01_clean.py` if you need to re-download `7T8C.pdb`
+- `MPLCONFIGDIR=/private/tmp/.mpl .venv/bin/python src/07_render_delivery_views.py` to regenerate static PNGs
+- `uv run jupyter notebook notebooks/visualize.ipynb` for interactive inspection
 
-| Step | Script | Description |
-| :--- | :--- | :--- |
-| **01** | `uv run python src/01_clean.py` | Fetch & clean Twinkle hexamer from RCSB (7T8C) |
-| **02** | *Manual Step* | Place `dna_30bp.pdb` in `structures/` |
-| **03** | `uv run python src/03_coarse_grain.py` | Generate Twinkle CG output and DNA fallback artifacts in `cg/` |
-| **04** | `uv run python src/04_merge.py` | Assemble an inspection complex using the available CG DNA file |
-| **05** | `uv run python src/05_solvate.py` | Build the local CG water/ion environment |
-| **06** | `uv run python src/06_simulate.py` | Build the self-contained Martini 2 HPC handoff bundle in `cg/handoff_m2_mg_proxy/` |
+## Files to Show
 
-### 3. Visualization
-Open the interactive 3D viewer in Jupyter:
-```bash
-uv run jupyter notebook notebooks/visualize.ipynb
-```
+If you need to show progress quickly:
+1. `deliverables/twinkle_dsDNA_complex_overview.png`
+2. `deliverables/twinkle_dsDNA_environment_zoom.png`
+3. `deliverables/twinkle_dsDNA_environment_m2_mg_proxy.tar.gz`
 
----
+## Supporting Notes
 
-## Toolchain 
-
-This project leverages the **Astral toolchain** for maximum efficiency:
-
-- **Package Manager**: [uv](https://github.com/astral-sh/uv) (Rust-based, 100x faster than pip)
-- **Linter & Formatter**: [Ruff](https://github.com/astral-sh/ruff)
-- **Type Checker**: [Ty](https://github.com/astral-sh/ty) (Modern successor to mypy)
-- **Simulation Handoff**: legacy Martini/GROMACS-style HPC bundle generation
-- **Coarse-Graining**: [MARTINI 3](https://cgmartini.nl/) via `martinize2`
-
-### Development Commands
-
-```bash
-uv run ruff check . --fix  # Lint & Auto-fix
-uv run ruff format .       # Format code
-uv run ty check .          # Type check (Modern)
-uv run pytest              # Run tests
-```
-
----
-
-## Project Structure
-
-- `src/`: Core simulation logic and pipeline scripts.
-- `cg/`: Coarse-grained models and topology artifacts.
-- `structures/`: Input atomic structures.
-- `notebooks/`: Visualization and analysis.
-- `output/`: Trajectories and results.
-
----
-
-## Project Plan
-See [docs/plan.md](docs/plan.md) for the detailed implementation roadmap and status.
+- `DELIVERY.md`: exact handoff statement
+- `docs/plan.md`: concise status and scope
+- `docs/journal.md`: engineering decisions and known tradeoffs

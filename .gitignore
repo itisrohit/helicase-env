@@ -154,6 +154,9 @@ cython_debug/
 # VS Code
 .vscode/
 
+# macOS
+.DS_Store
+
 # Project specific
 output/
 structures/7T8C.pdb
