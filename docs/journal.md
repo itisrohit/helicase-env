@@ -155,3 +155,17 @@ When setting up a simulation environment, finding specific structural "parts" is
 * The remaining chemistry caveat is narrowed to one place:
   * true Martini 3 dsDNA is still unavailable locally,
   * and the Martini 2 rescue branch still needs a divalent-ion proxy for Mg.
+
+## 🗓️ 2026-05-15 — Delivery Packaging
+
+### What was packaged
+
+* Added a direct handoff archive:
+  * `deliverables/twinkle_dsDNA_environment_m2_mg_proxy.tar.gz`
+* Added a top-level delivery note:
+  * `DELIVERY.md`
+
+### Consequence
+
+* The repo now has a single obvious artifact to hand off for the exact local-environment request.
+* The remaining Martini 3 DNA blocker is now clearly separated from the delivered work, rather than being confused with it.

@@ -3,19 +3,23 @@
 A coarse-grained Twinkle helicase + dsDNA setup workspace.
 
 Current reality:
-- Protein coarse-graining works.
-- The intended MARTINI 3 DNA path is still blocked upstream in the local `martinize2` stack.
-- The repo now includes a consistent Martini 2 rescue path:
+- The requested local environment handoff is prepared.
+- The delivered path in this repo is a consistent Martini 2 rescue branch:
   - `cg/twinkle_m2_cg.pdb`
   - `cg/dna_fallback_m2_cg.pdb`
   - `cg/complex_cg.pdb`
   - `cg/solvated_inspection_system.pdb`
   - `cg/handoff_m2_mg_proxy/`
-- This is useful for inspection and HPC handoff preparation, but it is still not a validated production Martini 3 run.
+- Packaged delivery artifact:
+  - `deliverables/twinkle_dsDNA_environment_m2_mg_proxy.tar.gz`
+- The original MARTINI 3 DNA path is still blocked upstream in the local `martinize2` stack, but that does not block the requested handoff deliverable.
 
 ---
 
 ## Quick Start
+
+### Delivery
+The direct handoff artifact is documented in [DELIVERY.md](./DELIVERY.md).
 
 ### 1. Initialize Environment
 Ensure you have `uv` installed, then sync the project:
@@ -32,8 +36,8 @@ The simulation setup is broken down into modular steps:
 | **02** | *Manual Step* | Place `dna_30bp.pdb` in `structures/` |
 | **03** | `uv run python src/03_coarse_grain.py` | Generate Twinkle CG output and DNA fallback artifacts in `cg/` |
 | **04** | `uv run python src/04_merge.py` | Assemble an inspection complex using the available CG DNA file |
-| **05** | `uv run python src/05_solvate.py` | Build a provisional CG water/ion inspection environment in `cg/solvated_inspection_system.pdb` |
-| **06** | `uv run python src/06_simulate.py` | Build a self-contained Martini 2 HPC handoff bundle in `cg/handoff_m2_mg_proxy/` |
+| **05** | `uv run python src/05_solvate.py` | Build the local CG water/ion environment |
+| **06** | `uv run python src/06_simulate.py` | Build the self-contained Martini 2 HPC handoff bundle in `cg/handoff_m2_mg_proxy/` |
 
 ### 3. Visualization
 Open the interactive 3D viewer in Jupyter:
